@@ -1,0 +1,13 @@
+{
+  "mcp_servers": [
+    {
+      "name": "example_server",
+      "command": "mcp_servers/start_mcp_server.sh",
+      "args": [
+        "example_server"
+      ],
+      "cwd": "/Users/danielguo/PycharmProjects/GenAIPractise"
+    }
+  ]
+}
+

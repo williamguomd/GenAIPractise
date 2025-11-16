@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "genaipractise"
+version = "0.1.0"
+description = "Multiple MCP (Model Context Protocol) servers"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.0.0",
+    "fastmcp>=0.9.0",
+    "click>=8.1.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+agent = "agent.cli:main"
+
+[tool.setuptools]
+packages = ["agent", "mcp_servers"]
+
+[tool.uv]
+package = true
