@@ -60,23 +60,28 @@ fi
 CONFIG_DIR="$HOME/.agent"
 mkdir -p "$CONFIG_DIR"
 
-# if [ ! -f "$CONFIG_DIR/mcp.json" ]; then
-    if [ -f "$PROJECT_DIR/mcp.json" ]; then
-        # Copy the project's mcp.json and update paths if needed
-        cp "$PROJECT_DIR/mcp.json" "$CONFIG_DIR/mcp.json"
-        # Update the cwd path in the config to use the actual project directory
-        sed -i.bak "s|\"cwd\": \".*\"|\"cwd\": \"$PROJECT_DIR\"|g" "$CONFIG_DIR/mcp.json"
-        rm -f "$CONFIG_DIR/mcp.json.bak" 2>/dev/null
-        echo "✓ Copied mcp.json from project to $CONFIG_DIR/mcp.json"
-    else
-        # Create minimal config
-        cat > "$CONFIG_DIR/mcp.json" << EOF
+# Always copy mcp.json from project root if it exists
+if [ -f "$PROJECT_DIR/mcp.json" ]; then
+    # Copy the project's mcp.json and update paths if needed
+    cp "$PROJECT_DIR/mcp.json" "$CONFIG_DIR/mcp.json"
+    # Update the cwd path in the config to use the actual project directory
+    sed -i.bak "s|\"cwd\": \".*\"|\"cwd\": \"$PROJECT_DIR\"|g" "$CONFIG_DIR/mcp.json"
+    rm -f "$CONFIG_DIR/mcp.json.bak" 2>/dev/null
+    echo "✓ Copied mcp.json from project to $CONFIG_DIR/mcp.json"
+elif [ -f "$PROJECT_DIR/mcp.json.example" ]; then
+    # Update the example config with the actual project path
+    sed "s|/Users/danielguo/PycharmProjects/GenAIPractise|$PROJECT_DIR|g" \
+        "$PROJECT_DIR/mcp.json.example" > "$CONFIG_DIR/mcp.json"
+    echo "✓ Created config from example at $CONFIG_DIR/mcp.json"
+else
+    # Create minimal config if neither exists
+    cat > "$CONFIG_DIR/mcp.json" << EOF
 {
   "mcp_servers": []
 }
 EOF
-        echo "✓ Created default config at $CONFIG_DIR/mcp.json"
-    fi
+    echo "✓ Created default config at $CONFIG_DIR/mcp.json"
+fi
 
 
 echo ""

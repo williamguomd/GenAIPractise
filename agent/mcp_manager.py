@@ -44,23 +44,27 @@ class MCPManager:
             if not server_name:
                 continue
             
-            # First, check if tools are defined in config - use them immediately
-            config_tools = server_config.get('tools', [])
-            if config_tools:
-                print(f"Using {len(config_tools)} tool(s) from config for {server_name}")
-                self.tools_cache[server_name] = config_tools
-                continue  # Skip connection attempt if tools are in config
-            
-            # If no tools in config, try to discover from server
+            # Always try to connect to the server and discover tools dynamically
+            print(f"Connecting to {server_name}...")
             try:
                 await self.discover_tools(server_config)
+                tools_count = len(self.tools_cache.get(server_name, []))
+                print(f"✓ Successfully discovered {tools_count} tool(s) from {server_name}")
             except Exception as e:
-                # If discovery fails and no config tools, cache empty list
-                self.tools_cache[server_name] = []
-                print(f"Warning: Could not discover tools from {server_name}: {e}")
+                # If discovery fails, fall back to config tools if available
+                config_tools = server_config.get('tools', [])
+                if config_tools:
+                    print(f"⚠ Connection failed, using {len(config_tools)} tool(s) from config for {server_name}")
+                    print(f"  Error: {e}")
+                    self.tools_cache[server_name] = config_tools
+                else:
+                    # No config tools and connection failed
+                    self.tools_cache[server_name] = []
+                    print(f"✗ Could not discover tools from {server_name} and no tools in config")
+                    print(f"  Error: {e}")
     
     async def discover_tools(self, server_config: Dict[str, Any]):
-        """Discover tools from an MCP server (only called if tools not in config)"""
+        """Discover tools from an MCP server by connecting to it"""
         server_name = server_config.get('name')
         command = server_config.get('command')
         args = server_config.get('args', [])
@@ -85,26 +89,24 @@ class MCPManager:
             env=None,
         )
         
-        # Create stdio client
-        read_stream, write_stream = await stdio_client(server_params)
-        
-        # Create session
-        async with ClientSession(read_stream, write_stream) as session:
-            # Initialize the session
-            await session.initialize()
-            
-            # List available tools
-            tools_result = await session.list_tools()
-            tools = [
-                {
-                    'name': tool.name,
-                    'description': tool.description or '',
-                    'inputSchema': tool.inputSchema
-                }
-                for tool in tools_result.tools
-            ]
-            
-            self.tools_cache[server_name] = tools
+        # Create stdio client and session
+        async with stdio_client(server_params) as (read_stream, write_stream):
+            async with ClientSession(read_stream, write_stream) as session:
+                # Initialize the session
+                await session.initialize()
+                
+                # List available tools
+                tools_result = await session.list_tools()
+                tools = [
+                    {
+                        'name': tool.name,
+                        'description': tool.description or '',
+                        'inputSchema': tool.inputSchema
+                    }
+                    for tool in tools_result.tools
+                ]
+                
+                self.tools_cache[server_name] = tools
     
     def get_all_tools(self) -> Dict[str, List[Dict]]:
         """Get all available tools from all servers"""

@@ -25,13 +25,13 @@ command_exists() {
 
 # Function to install uv
 install_uv() {
-    echo "uv not found. Installing uv..."
+    echo "uv not found. Installing uv..." >&2  # Redirect to stderr
     
     # Check if curl is available
     if ! command_exists curl; then
-        echo "Error: curl is required to install uv but is not installed."
-        echo "Please install curl first, or install uv manually:"
-        echo "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+        echo "Error: curl is required to install uv but is not installed." >&2
+        echo "Please install curl first, or install uv manually:" >&2
+        echo "  curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
         exit 1
     fi
     
@@ -56,16 +56,16 @@ install_uv() {
     # Install based on OS
     case "$OS" in
         Linux*)
-            echo "Installing uv for Linux ($UV_ARCH)..."
-            curl -LsSf https://astral.sh/uv/install.sh | sh
+            echo "Installing uv for Linux ($UV_ARCH)..." >&2
+            curl -LsSf https://astral.sh/uv/install.sh | sh >&2
             ;;
         Darwin*)
-            echo "Installing uv for macOS ($UV_ARCH)..."
-            curl -LsSf https://astral.sh/uv/install.sh | sh
+            echo "Installing uv for macOS ($UV_ARCH)..." >&2
+            curl -LsSf https://astral.sh/uv/install.sh | sh >&2
             ;;
         *)
-            echo "Error: Unsupported operating system: $OS"
-            echo "Please install uv manually from https://github.com/astral-sh/uv"
+            echo "Error: Unsupported operating system: $OS" >&2
+            echo "Please install uv manually from https://github.com/astral-sh/uv" >&2
             exit 1
             ;;
     esac
@@ -75,21 +75,21 @@ install_uv() {
     
     # Verify installation
     if command_exists uv; then
-        echo "✓ uv installed successfully"
-        uv --version
+        echo "✓ uv installed successfully" >&2  # Redirect to stderr
+        uv --version >&2  # Redirect to stderr
     else
-        echo "Error: uv installation failed. Please install manually:"
-        echo "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+        echo "Error: uv installation failed. Please install manually:" >&2
+        echo "  curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
         exit 1
     fi
 }
 
 # Check if uv is installed, install if not
 if ! command_exists uv; then
-    install_uv
+    install_uv >&2  # Redirect to stderr
 else
-    echo "✓ uv is already installed"
-    uv --version
+    echo "✓ uv is already installed" >&2  # Redirect to stderr
+    uv --version >&2  # Redirect to stderr
 fi
 
 # Ensure uv is in PATH
@@ -99,17 +99,18 @@ fi
 
 # Check if server exists
 if [ ! -d "mcp_servers/$SERVER_NAME" ]; then
-    echo "Error: Server '$SERVER_NAME' not found in mcp_servers/"
-    echo "Available servers:"
-    ls -1 mcp_servers/ 2>/dev/null | grep -v __pycache__ | grep -v __init__.py | grep -v start_mcp_server.sh | grep -v '^$' || echo "  (none found)"
+    echo "Error: Server '$SERVER_NAME' not found in mcp_servers/" >&2
+    echo "Available servers:" >&2
+    ls -1 mcp_servers/ 2>/dev/null | grep -v __pycache__ | grep -v __init__.py | grep -v start_mcp_server.sh | grep -v '^$' || echo "  (none found)" >&2
     exit 1
 fi
 
-# Start the MCP server
-echo ""
-echo "Starting MCP server: $SERVER_NAME"
-echo "Press Ctrl+C to stop the server"
-echo ""
+# Start the MCP server (redirect status messages to stderr)
+echo "" >&2
+echo "Starting MCP server: $SERVER_NAME" >&2
+echo "Press Ctrl+C to stop the server" >&2
+echo "" >&2
 
+# Run the server - stdout should only contain JSON-RPC messages
 uv run python -m "mcp_servers.$SERVER_NAME.server"
 
