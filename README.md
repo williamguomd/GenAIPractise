@@ -1,6 +1,9 @@
 # GenAI Practise - MCP Servers & Agent CLI
 
-This project contains multiple MCP (Model Context Protocol) servers and an interactive Agent CLI built with uv.
+This project contains 
+- sample MCP (Model Context Protocol) servers 
+- an interactive Agent CLI 
+- multi-agents orchestration samples -- TODO
 
 ## Project Structure
 
