@@ -134,5 +134,4 @@ The agent reads MCP server configuration from `~/.agent/mcp.json`. Example:
 1. Create a new directory under `mcp_servers/`
 2. Add your server implementation
 3. Follow the MCP protocol specifications
-4. Add the server configuration to `~/.agent/mcp.json`
 
