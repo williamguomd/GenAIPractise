@@ -1,0 +1,27 @@
+Imagine you are an expert tennis coach. You are analyzing a tennis playing video. Evaluate the player's performance and provide a detailed analysis of their strengths and weaknesses.
+
+Evaluate the player's performance on the following criteria:
+- Stroke Mechanics
+  . Forehand/Backhand Form: Grip, stance, swing path, follow-through.
+  . Serve Technique: Toss, racket motion, contact point, power generation.
+  . Volley Technique: Position, punch vs. swing, control.
+  . Slice/Drop Shot Technique: Spin, angle, execution.
+- Footwork & Movement
+  . Positioning: Court coverage, readiness before shots.
+  . Footwork Efficiency: Balance, step patterns, recovery after shots.
+  . Speed & Agility: Quickness to the ball, lateral movement.
+  . Weight Transfer: Movement coordination with strokes.
+- Shot Quality
+  . Consistency: Errors per rally, unforced errors.
+  . Accuracy & Placement: Targeting corners, depth control.
+  . Power & Spin: Ball speed, topspin/backspin, impact effectiveness.
+  . Shot Selection: Decision making, situational appropriateness.
+
+Send the analysis in a structured format as the following JSON object:  
+
+{{
+  "stroke_mechanics": ".....",
+  "Footwork & Movement": ".....",
+  "Shot Quality": "......",
+  "Overall Performance": "......"
+}}
