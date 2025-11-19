@@ -8,6 +8,9 @@ from typing import List, Optional
 import cv2
 from PIL import Image
 import io
+from agent.logger_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class VideoProcessor:
@@ -33,21 +36,26 @@ class VideoProcessor:
             List of PIL Image objects
         """
         if not video_path.exists():
+            logger.error(f"Video file not found: {video_path}")
             raise FileNotFoundError(f"Video file not found: {video_path}")
         
+        logger.debug(f"Opening video file: {video_path}")
         cap = cv2.VideoCapture(str(video_path))
         if not cap.isOpened():
+            logger.error(f"Could not open video file: {video_path}")
             raise ValueError(f"Could not open video file: {video_path}")
         
         frames = []
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = cap.get(cv2.CAP_PROP_FPS) or 1
+        logger.debug(f"Video info: {total_frames} frames, {fps} fps, extracting max {self.max_frames} frames")
         
         # Calculate frame interval to extract evenly spaced frames
         if total_frames > self.max_frames:
             interval = total_frames // self.max_frames
         else:
             interval = 1
+        logger.debug(f"Frame extraction interval: {interval}")
         
         frame_count = 0
         extracted_count = 0
@@ -70,8 +78,10 @@ class VideoProcessor:
         cap.release()
         
         if not frames:
+            logger.error(f"No frames extracted from video: {video_path}")
             raise ValueError(f"No frames extracted from video: {video_path}")
         
+        logger.info(f"Successfully extracted {len(frames)} frame(s) from video")
         return frames
     
     def encode_image_to_base64(self, image: Image.Image, format: str = "JPEG") -> str:
@@ -104,7 +114,9 @@ class VideoProcessor:
         Returns:
             List of base64 encoded image strings (with data URI prefix)
         """
+        logger.debug(f"Processing video: {video_path}")
         frames = self.extract_frames(video_path)
         encoded_frames = [self.encode_image_to_base64(frame) for frame in frames]
+        logger.debug(f"Encoded {len(encoded_frames)} frame(s) to base64")
         return encoded_frames
 

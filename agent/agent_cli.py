@@ -14,7 +14,9 @@ from rich.markdown import Markdown
 
 from agent.mcp_manager import MCPManager
 from agent.llm_client import LLMClient
+from agent.logger_config import get_logger
 
+logger = get_logger(__name__)
 console = Console()
 
 
@@ -65,12 +67,14 @@ Type `/help` for available commands, or `/exit` to quit.
         tools = self.mcp_manager.get_all_tools()
         
         # Debug output
-        console.print(f"[dim]Debug: tools_cache has {len(tools)} server(s)[/dim]")
+        logger.debug(f"tools_cache has {len(tools)} server(s)")
         if tools:
             for server_name, server_tools in tools.items():
-                console.print(f"[dim]Debug: {server_name} has {len(server_tools)} tool(s)[/dim]")
+                logger.debug(f"{server_name} has {len(server_tools)} tool(s)")
         
         if not tools:
+            logger.warning("No MCP tools available. Check your mcp.json configuration.")
+            logger.debug(f"Config path: {self.mcp_manager.config_path}, exists: {self.mcp_manager.config_path.exists()}")
             console.print("[yellow]No MCP tools available. Check your mcp.json configuration.[/yellow]")
             console.print(f"[dim]Config path: {self.mcp_manager.config_path}[/dim]")
             console.print(f"[dim]Config exists: {self.mcp_manager.config_path.exists()}[/dim]")
@@ -79,6 +83,7 @@ Type `/help` for available commands, or `/exit` to quit.
         # Check if all servers have empty tool lists
         total_tools = sum(len(server_tools) for server_tools in tools.values())
         if total_tools == 0:
+            logger.warning("MCP servers found but no tools available.")
             console.print("[yellow]MCP servers found but no tools available.[/yellow]")
             return
         
@@ -120,16 +125,20 @@ Type `/help` for available commands, or `/exit` to quit.
         
         # Handle LLM request
         if not self.llm_client:
+            logger.warning("LLM request attempted but LLM client not configured")
             console.print("[red]LLM not configured. Set OPENAI_API_KEY environment variable.[/red]")
             return
         
         try:
+            logger.info(f"Processing LLM request: {user_input[:100]}...")
             console.print("[dim]Thinking...[/dim]")
             response = await self.llm_client.chat(user_input)
+            logger.debug(f"LLM response received (length: {len(response)})")
             console.print(f"\n[bold]Response:[/bold]\n")
             console.print(Markdown(response))
             console.print()
         except Exception as e:
+            logger.error(f"Error processing LLM request: {e}", exc_info=True)
             console.print(f"[red]Error: {str(e)}[/red]")
     
     async def run(self):
@@ -138,9 +147,12 @@ Type `/help` for available commands, or `/exit` to quit.
         
         # Initialize MCP connections
         try:
+            logger.info("Initializing MCP connections")
             await self.mcp_manager.initialize()
+            logger.info("MCP tools loaded successfully")
             console.print("[green]✓ MCP tools loaded[/green]\n")
         except Exception as e:
+            logger.error(f"Could not load MCP tools: {e}", exc_info=True)
             console.print(f"[yellow]Warning: Could not load MCP tools: {str(e)}[/yellow]\n")
         
         # Main loop
@@ -149,11 +161,14 @@ Type `/help` for available commands, or `/exit` to quit.
                 user_input = Prompt.ask("[bold cyan]agent>[/bold cyan]")
                 await self.process_user_input(user_input)
             except KeyboardInterrupt:
+                logger.info("Keyboard interrupt received")
                 console.print("\n[yellow]Use /exit to quit[/yellow]")
             except EOFError:
+                logger.info("EOF received, exiting")
                 self.running = False
                 console.print("\n[yellow]Goodbye![/yellow]")
             except Exception as e:
+                logger.error(f"Error in main loop: {e}", exc_info=True)
                 console.print(f"[red]Error: {str(e)}[/red]")
 
 
@@ -192,16 +207,20 @@ def main():
     config_path = None
     if project_config and project_config.exists():
         config_path = project_config
+        logger.info(f"Using config from project root: {config_path}")
         console.print(f"[dim]Using config from project root: {config_path}[/dim]")
     elif home_config.exists():
         config_path = home_config
+        logger.info(f"Using config from home: {config_path}")
         console.print(f"[dim]Using config from home: {config_path}[/dim]")
         # Warn if project root config exists but wasn't used
         if project_config and project_config.exists():
+            logger.warning(f"Project root config exists at {project_config} but using home config instead")
             console.print(f"[yellow]Warning: Project root config exists at {project_config} but using home config instead[/yellow]")
     else:
         # Create default config in home directory
         config_path = home_config
+        logger.info(f"Config file not found. Creating default at {config_path}")
         console.print(f"[yellow]Config file not found. Creating default at {config_path}[/yellow]")
         config_path.parent.mkdir(parents=True, exist_ok=True)
         default_config = {
@@ -209,21 +228,26 @@ def main():
         }
         with open(config_path, 'w') as f:
             json.dump(default_config, f, indent=2)
+        logger.info(f"Created default config at {config_path}")
         console.print(f"[green]Created default config at {config_path}[/green]")
         console.print("[yellow]Please edit the config file to add MCP servers.[/yellow]\n")
     
     if not config_path:
+        logger.error("Could not determine config path")
         console.print("[red]Error: Could not determine config path[/red]")
         return
     
     # Run the CLI
     try:
+        logger.info("Starting Agent CLI")
         cli = AgentCLI(config_path)
         asyncio.run(cli.run())
     except KeyboardInterrupt:
+        logger.info("Keyboard interrupt in main, exiting")
         console.print("\n[yellow]Goodbye![/yellow]")
         sys.exit(0)
     except Exception as e:
+        logger.critical(f"Fatal error: {e}", exc_info=True)
         console.print(f"[red]Fatal error: {str(e)}[/red]")
         sys.exit(1)
 

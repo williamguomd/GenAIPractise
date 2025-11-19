@@ -141,7 +141,7 @@ The agent reads MCP server configuration from `~/.agent/mcp.json` (copied from p
 
 ## Video Evaluation
 
-The project includes a video evaluation module that uses LLM vision models to analyze tennis videos.
+The project includes a video evaluation example that uses LLM vision models to analyze tennis videos.
 
 ### Usage
 

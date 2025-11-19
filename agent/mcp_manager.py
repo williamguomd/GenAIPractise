@@ -9,6 +9,9 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from agent.logger_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class MCPManager:
@@ -34,10 +37,10 @@ class MCPManager:
         
         servers = self.config.get('mcp_servers', [])
         if not servers:
-            print("No MCP servers found in config")
+            logger.warning("No MCP servers found in config")
             return
         
-        print(f"Found {len(servers)} MCP server(s) in config")
+        logger.info(f"Found {len(servers)} MCP server(s) in config")
         
         for server_config in servers:
             server_name = server_config.get('name')
@@ -45,23 +48,21 @@ class MCPManager:
                 continue
             
             # Always try to connect to the server and discover tools dynamically
-            print(f"Connecting to {server_name}...")
+            logger.info(f"Connecting to {server_name}...")
             try:
                 await self.discover_tools(server_config)
                 tools_count = len(self.tools_cache.get(server_name, []))
-                print(f"✓ Successfully discovered {tools_count} tool(s) from {server_name}")
+                logger.info(f"Successfully discovered {tools_count} tool(s) from {server_name}")
             except Exception as e:
                 # If discovery fails, fall back to config tools if available
                 config_tools = server_config.get('tools', [])
                 if config_tools:
-                    print(f"⚠ Connection failed, using {len(config_tools)} tool(s) from config for {server_name}")
-                    print(f"  Error: {e}")
+                    logger.warning(f"Connection failed, using {len(config_tools)} tool(s) from config for {server_name}: {e}")
                     self.tools_cache[server_name] = config_tools
                 else:
                     # No config tools and connection failed
                     self.tools_cache[server_name] = []
-                    print(f"✗ Could not discover tools from {server_name} and no tools in config")
-                    print(f"  Error: {e}")
+                    logger.error(f"Could not discover tools from {server_name} and no tools in config: {e}")
     
     async def discover_tools(self, server_config: Dict[str, Any]):
         """Discover tools from an MCP server by connecting to it"""
@@ -71,6 +72,7 @@ class MCPManager:
         cwd = server_config.get('cwd')
         
         if not command:
+            logger.error(f"Server {server_name} missing 'command' in config")
             raise ValueError(f"Server {server_name} missing 'command' in config")
         
         # Build command list - resolve relative paths
@@ -90,12 +92,15 @@ class MCPManager:
         )
         
         # Create stdio client and session
+        logger.debug(f"Connecting to {server_name} with command: {cmd}")
         async with stdio_client(server_params) as (read_stream, write_stream):
             async with ClientSession(read_stream, write_stream) as session:
                 # Initialize the session
+                logger.debug(f"Initializing session for {server_name}")
                 await session.initialize()
                 
                 # List available tools
+                logger.debug(f"Listing tools from {server_name}")
                 tools_result = await session.list_tools()
                 tools = [
                     {
@@ -106,6 +111,7 @@ class MCPManager:
                     for tool in tools_result.tools
                 ]
                 
+                logger.debug(f"Discovered {len(tools)} tool(s) from {server_name}")
                 self.tools_cache[server_name] = tools
     
     def get_all_tools(self) -> Dict[str, List[Dict]]:

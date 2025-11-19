@@ -68,11 +68,6 @@ if [ -f "$PROJECT_DIR/mcp.json" ]; then
     sed -i.bak "s|\"cwd\": \".*\"|\"cwd\": \"$PROJECT_DIR\"|g" "$CONFIG_DIR/mcp.json"
     rm -f "$CONFIG_DIR/mcp.json.bak" 2>/dev/null
     echo "✓ Copied mcp.json from project to $CONFIG_DIR/mcp.json"
-elif [ -f "$PROJECT_DIR/mcp.json.example" ]; then
-    # Update the example config with the actual project path
-    sed "s|/Users/danielguo/PycharmProjects/GenAIPractise|$PROJECT_DIR|g" \
-        "$PROJECT_DIR/mcp.json.example" > "$CONFIG_DIR/mcp.json"
-    echo "✓ Created config from example at $CONFIG_DIR/mcp.json"
 else
     # Create minimal config if neither exists
     cat > "$CONFIG_DIR/mcp.json" << EOF

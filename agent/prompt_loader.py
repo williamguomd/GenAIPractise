@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Optional
 from langchain_core.prompts import PromptTemplate
 import yaml
+from agent.logger_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class PromptLoader:
@@ -42,14 +45,17 @@ class PromptLoader:
         prompt_file = self.prompt_dir / prompt_name
         
         if not prompt_file.exists():
+            logger.error(f"Prompt file not found: {prompt_file}")
             raise FileNotFoundError(f"Prompt file not found: {prompt_file}")
         
+        logger.debug(f"Loading prompt from: {prompt_file}")
         with open(prompt_file, 'r', encoding='utf-8') as f:
             prompt_content = f.read()
         
         # Extract input variables from the template (look for {variable} patterns)
         import re
         input_vars = set(re.findall(r'\{(\w+)\}', prompt_content))
+        logger.debug(f"Found input variables: {input_vars}")
         
         # Create LangChain PromptTemplate
         template = PromptTemplate(
@@ -57,5 +63,6 @@ class PromptLoader:
             template=prompt_content
         )
         
+        logger.info(f"Successfully loaded prompt: {prompt_name}")
         return template
 

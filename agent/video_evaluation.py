@@ -8,6 +8,9 @@ from typing import Optional, Dict, Any
 from agent.prompt_loader import PromptLoader
 from agent.llm_service import LLMService
 from agent.video_processor import VideoProcessor
+from agent.logger_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class VideoEvaluator:
@@ -73,6 +76,8 @@ class VideoEvaluator:
             return normalized
             
         except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Failed to parse JSON response: {e}")
+            logger.debug(f"Raw response content: {content[:500]}...")
             return {
                 "raw_response": content,
                 "error": f"Failed to parse JSON: {str(e)}",
@@ -97,7 +102,9 @@ class VideoEvaluator:
         
         if video_path and video_path.is_file():
             # Process video file: extract frames and encode to base64
+            logger.info(f"Processing video file: {video_path}")
             encoded_frames = self.video_processor.process_video(video_path)
+            logger.debug(f"Extracted {len(encoded_frames)} frame(s) from video")
             # Format prompt - frames will be sent as images, so no video text needed
             # Only format if template has 'video' variable
             if "video" in self.prompt_template.input_variables:
@@ -105,14 +112,18 @@ class VideoEvaluator:
             else:
                 formatted_prompt = self.prompt_template.format()
             # Send prompt with images
+            logger.info("Sending video evaluation request to LLM")
             response = self.llm_service.invoke(formatted_prompt, images=encoded_frames)
+            logger.debug(f"Received LLM response (length: {len(response)})")
         else:
             # Treat as text description
+            logger.info(f"Processing text description: {video_input[:100]}...")
             if "video" in self.prompt_template.input_variables:
                 formatted_prompt = self.prompt_template.format(video=str(video_input))
             else:
                 formatted_prompt = self.prompt_template.format()
             response = self.llm_service.invoke(formatted_prompt)
+            logger.debug(f"Received LLM response (length: {len(response)})")
         
         return self._parse_response(response)
     
@@ -131,7 +142,9 @@ class VideoEvaluator:
         
         if video_path and video_path.is_file():
             # Process video file: extract frames and encode to base64
+            logger.info(f"Processing video file (async): {video_path}")
             encoded_frames = self.video_processor.process_video(video_path)
+            logger.debug(f"Extracted {len(encoded_frames)} frame(s) from video")
             # Format prompt - frames will be sent as images, so no video text needed
             # Only format if template has 'video' variable
             if "video" in self.prompt_template.input_variables:
@@ -139,14 +152,18 @@ class VideoEvaluator:
             else:
                 formatted_prompt = self.prompt_template.format()
             # Send prompt with images
+            logger.info("Sending video evaluation request to LLM (async)")
             response = await self.llm_service.ainvoke(formatted_prompt, images=encoded_frames)
+            logger.debug(f"Received LLM response (length: {len(response)})")
         else:
             # Treat as text description
+            logger.info(f"Processing text description (async): {video_input[:100]}...")
             if "video" in self.prompt_template.input_variables:
                 formatted_prompt = self.prompt_template.format(video=str(video_input))
             else:
                 formatted_prompt = self.prompt_template.format()
             response = await self.llm_service.ainvoke(formatted_prompt)
+            logger.debug(f"Received LLM response (length: {len(response)})")
         
         return self._parse_response(response)
 
@@ -199,10 +216,12 @@ def main():
     
     # Check if video file exists
     if not video_file.exists():
+        logger.error(f"Video file not found at {video_file}")
         console.print(f"[red]Error: Video file not found at {video_file}[/red]")
         console.print("[yellow]Please ensure video/tennis.mov exists in the project root.[/yellow]")
         sys.exit(1)
     
+    logger.info(f"Starting video evaluation for: {video_file.name}")
     console.print(f"[bold cyan]Evaluating video: {video_file.name}[/bold cyan]\n")
     console.print("[dim]Extracting frames and encoding for LLM analysis...[/dim]\n")
     
@@ -210,6 +229,7 @@ def main():
         # Run evaluation with video file path (will extract frames automatically)
         # api_key and model are read from .env file via LLMService
         result = evaluate_video(video_file)
+        logger.info("Video evaluation completed successfully")
         
         # Display results
         console.print(f"[bold green]Evaluation Results:[/bold green]\n")
@@ -225,10 +245,12 @@ def main():
             
     
     except ValueError as e:
+        logger.error(f"Configuration error: {e}")
         console.print(f"[red]Configuration Error: {str(e)}[/red]")
         console.print("\n[yellow]Make sure OPENAI_API_KEY is set in your .env file or environment.[/yellow]")
         sys.exit(1)
     except Exception as e:
+        logger.error(f"Error during evaluation: {e}", exc_info=True)
         console.print(f"[red]Error during evaluation: {str(e)}[/red]")
 
 

@@ -20,3 +20,8 @@ wheels/
 # Environment variables
 .env
 .env.local
+
+# Log files
+logs/
+*.log
+*.log.*

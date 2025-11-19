@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Optional
 from openai import OpenAI
 from dotenv import load_dotenv
+from agent.logger_config import get_logger
+
+logger = get_logger(__name__)
 
 # Load .env file from project root
 project_root = Path(__file__).parent.parent.parent
@@ -23,11 +26,15 @@ class LLMClient:
         self.client = None
         
         if self.api_key:
+            logger.debug(f"Initializing LLM client with model: {self.model}")
             self.client = OpenAI(api_key=self.api_key)
+        else:
+            logger.warning("LLM client initialized without API key")
     
     async def chat(self, user_message: str, system_message: Optional[str] = None) -> str:
         """Send a chat message to the LLM and get a response"""
         if not self.client:
+            logger.error("Chat attempted but LLM client not configured")
             raise ValueError(
                 "OpenAI API key not configured. "
                 "Set OPENAI_API_KEY environment variable or create a .env file."
@@ -37,8 +44,10 @@ class LLMClient:
         
         if system_message:
             messages.append({"role": "system", "content": system_message})
+            logger.debug("System message included in chat request")
         
         messages.append({"role": "user", "content": user_message})
+        logger.debug(f"Sending chat request to {self.model} (user message length: {len(user_message)})")
         
         # Note: OpenAI client is synchronous, but we're using async for consistency
         # In production, you might want to use async OpenAI client
@@ -48,5 +57,7 @@ class LLMClient:
             temperature=0.7,
         )
         
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        logger.debug(f"Received response from LLM (length: {len(content)})")
+        return content
 
